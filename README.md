@@ -1,95 +1,162 @@
-# ascicam
+# `ascicam`
 
-Minimal Go CLI that opens your webcam and renders it as live ASCII art in the terminal.
-It now supports tone controls, palette inversion, and an edge-only rendering mode for a cleaner, more stylized feed.
-
-## Project structure
+![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)
+![OpenCV](https://img.shields.io/badge/OpenCV-gocv-5C3EE8?style=flat-square&logo=opencv)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-222222?style=flat-square)
+![Interface](https://img.shields.io/badge/interface-terminal%20ASCII-F7DF1E?style=flat-square&logo=gnu-bash&logoColor=111111)
 
 ```text
-ascicam/
-├── cmd/ascicam/main.go
-├── internal/ascii/renderer.go
-├── go.mod
-└── README.md
+  █████  ███████  ██████ ██ ██  █████  ███    ███
+ ██   ██ ██      ██      ██ ██ ██   ██ ████  ████
+ ███████ ███████ ██      ██ ██ ███████ ██ ████ ██
+ ██   ██      ██ ██      ██ ██ ██   ██ ██  ██  ██
+ ██   ██ ███████  ██████ ██ ██ ██   ██ ██      ██
+
+          live webcam -> grayscale -> terminal ASCII
+             Go + OpenCV + ANSI terminal rendering
 ```
 
-- `cmd/ascicam/main.go`: CLI flags, webcam loop, image processing, terminal setup, quit handling.
-- `internal/ascii/renderer.go`: grayscale resize, aspect-ratio fitting, brightness-to-ASCII mapping.
-- `internal/ascii/renderer_test.go`: renderer behavior tests.
+Turn your webcam into a live ASCII feed in the terminal.
 
-## Libraries
+`ascicam` is a small Go CLI for people who want a camera preview that feels a bit more interesting than a plain window: fast startup, no GUI framework, adjustable tone, edge mode, and a terminal-first workflow.
 
-- `gocv.io/x/gocv`: webcam capture and image processing. This is the most practical MVP option in Go because it gives you camera access plus grayscale/resize operations in one package.
-- `golang.org/x/term`: raw terminal mode and terminal size detection so `q` can quit immediately and the output can fit the console.
-- ANSI escape sequences: used directly for clearing/redrawing the terminal without bringing in a full terminal UI framework.
+## ✨ Features
 
-## Install dependencies
+- Live webcam rendering directly in the terminal
+- ASCII palette mapping with custom character ramps
+- `grayscale` and `edges` render modes
+- Contrast, brightness, and palette inversion controls
+- Auto-fit sizing plus runtime width adjustment
+- Raw-terminal controls with low-flicker redraw
 
-This project depends on OpenCV through `gocv`.
+## 🎞️ Demo Feel
 
-### macOS
+```text
+..::--==++**##%%@@
+..::--==+++**##%%@
+  ...:::---==++**#
+```
+
+Works well for:
+
+- terminal demos
+- SSH-friendly visual debugging
+- weird little camera tools
+- retro/CLI aesthetics
+
+## 🛠️ Install
+
+`ascicam` uses [`gocv`](https://gocv.io/) and therefore needs OpenCV installed locally.
+
+### 🍎 macOS
 
 ```bash
 brew install pkg-config opencv
-cd ascicam
 go mod tidy
 ```
 
-If `gocv` cannot find OpenCV automatically, export:
+If `gocv` does not detect OpenCV automatically:
 
 ```bash
 export CGO_CFLAGS="-I$(brew --prefix opencv)/include/opencv4"
 export CGO_LDFLAGS="-L$(brew --prefix opencv)/lib -lopencv_core -lopencv_imgproc -lopencv_videoio"
 ```
 
-### Ubuntu / Debian
+### 🐧 Ubuntu / Debian
 
 ```bash
 sudo apt update
 sudo apt install -y libopencv-dev pkg-config
-cd ascicam
 go mod tidy
 ```
 
-### Camera permissions
+### 📷 Camera Access
 
-- macOS: grant Terminal or your terminal app camera access in System Settings.
-- Linux: ensure your user can access `/dev/video*`.
+- On macOS, grant camera permission to your terminal app.
+- On Linux, make sure your user can access `/dev/video*`.
 
-## Run
+## ▶️ Run
 
 ```bash
-cd ascicam
 go run ./cmd/ascicam
 ```
 
-Useful flags:
+### Quick Recipes
+
+Default view:
 
 ```bash
-go run ./cmd/ascicam --width 100
-go run ./cmd/ascicam --device 1
-go run ./cmd/ascicam --fps 15
-go run ./cmd/ascicam --palette "@%#*+=-:. "
-go run ./cmd/ascicam --width 72 --mirror=true
-go run ./cmd/ascicam --invert
-go run ./cmd/ascicam --contrast 1.35 --brightness 12
-go run ./cmd/ascicam --mode edges --palette " .:+#@"
-go run ./cmd/ascicam --mode edges --edge-low 30 --edge-high 90
+go run ./cmd/ascicam
 ```
 
-## Notes
+Sharper grayscale:
 
-- The default camera is opened with `--device 0`. On laptops this is often the front-facing camera, but device ordering is OS-specific.
-- The renderer compensates for terminal character proportions with a `0.5` height multiplier so the image looks less vertically stretched.
-- The terminal is redrawn from the top-left each frame instead of fully clearing on every loop, which reduces flicker.
-- `--contrast` and `--brightness` are applied before ASCII conversion, which makes dim webcams noticeably easier to read.
-- `--mode edges` keeps only Canny edges, which works well for a cleaner terminal aesthetic and low-detail scenes.
-- `--invert` flips the palette mapping, which is useful when pairing a dark palette with bright subjects.
-- `--status=false` hides the bottom help/status line for a cleaner fullscreen look.
+```bash
+go run ./cmd/ascicam --contrast 1.35 --brightness 12
+```
 
-## Quit
+Edge-only terminal look:
 
-- Press `q`
-- Or use `Ctrl+C`
-- Press `+` or `-` to adjust width while running
-- Press `0` to return to automatic terminal-fit width
+```bash
+go run ./cmd/ascicam --mode edges --palette " .:+#@" --edge-low 30 --edge-high 90
+```
+
+Wide mirrored feed:
+
+```bash
+go run ./cmd/ascicam --width 100 --mirror=true
+```
+
+Inverted palette:
+
+```bash
+go run ./cmd/ascicam --invert
+```
+
+## ⚙️ Flags
+
+```text
+--device       camera device index
+--width        output width in characters, 0 = auto-fit
+--fps          maximum refresh rate
+--palette      ASCII ramp from dark to bright
+--mirror       mirror the camera horizontally
+--mode         grayscale | edges
+--contrast     grayscale contrast multiplier
+--brightness   grayscale brightness offset
+--edge-low     lower Canny threshold for edge mode
+--edge-high    upper Canny threshold for edge mode
+--invert       invert palette brightness mapping
+--status       show or hide the bottom status line
+```
+
+## ⌨️ Runtime Controls
+
+While the app is running:
+
+- `q` quits
+- `Ctrl+C` quits
+- `+` and `-` change width
+- `0` returns to auto width
+
+## 📝 Notes
+
+- Device ordering depends on the OS and hardware. `--device 0` is just the default guess.
+- Character cells are taller than they are wide, so the renderer compensates for aspect ratio.
+- `edges` mode uses Canny edge detection and works best when you want bold outlines instead of smooth shading.
+- `--status=false` gives a cleaner fullscreen terminal look.
+
+## 📦 Project Layout
+
+```text
+ascicam/
+├── cmd/ascicam/main.go
+├── internal/ascii/renderer.go
+├── internal/ascii/renderer_test.go
+├── go.mod
+└── README.md
+```
+
+- `cmd/ascicam/main.go`: CLI flags, webcam loop, image processing, terminal setup.
+- `internal/ascii/renderer.go`: ASCII mapping, resizing, and masked rendering.
+- `internal/ascii/renderer_test.go`: renderer behavior tests.
