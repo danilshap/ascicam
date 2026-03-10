@@ -1,2 +1,4 @@
 .gocache/
 .gomodcache/
+captures/
+.DS_Store

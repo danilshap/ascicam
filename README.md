@@ -6,11 +6,10 @@
 ![Interface](https://img.shields.io/badge/interface-terminal%20ASCII-F7DF1E?style=flat-square&logo=gnu-bash&logoColor=111111)
 
 ```text
-  █████  ███████  ██████ ██ ██  █████  ███    ███
- ██   ██ ██      ██      ██ ██ ██   ██ ████  ████
- ███████ ███████ ██      ██ ██ ███████ ██ ████ ██
- ██   ██      ██ ██      ██ ██ ██   ██ ██  ██  ██
- ██   ██ ███████  ██████ ██ ██ ██   ██ ██      ██
+   __ _ ___  ___ _  ___ __ _ _ __ ___
+  / _` / __|/ __| |/ __/ _` | '_ ` _ \
+ | (_| \__ \ (__| | (_| (_| | | | | | |
+  \__,_|___/\___|_|\___\__,_|_| |_| |_|
 
           live webcam -> grayscale -> terminal ASCII
              Go + OpenCV + ANSI terminal rendering
@@ -20,6 +19,8 @@ Turn your webcam into a live ASCII feed in the terminal.
 
 `ascicam` is a small Go CLI for people who want a camera preview that feels a bit more interesting than a plain window: fast startup, no GUI framework, adjustable tone, edge mode, and a terminal-first workflow.
 
+Running it without flags opens a pane-based terminal UI, so normal use no longer depends on remembering command-line options.
+
 ## ✨ Features
 
 - Live webcam rendering directly in the terminal
@@ -27,6 +28,10 @@ Turn your webcam into a live ASCII feed in the terminal.
 - `grayscale` and `edges` render modes
 - Contrast, brightness, and palette inversion controls
 - Auto-fit sizing plus runtime width adjustment
+- ASCII photo export to `.txt`
+- GIF session recording up to 5 seconds
+- Pane-based terminal UI with keyboard navigation
+- Capture countdown and saved-file confirmation
 - Raw-terminal controls with low-flicker redraw
 
 ## 🎞️ Demo Feel
@@ -83,10 +88,22 @@ go run ./cmd/ascicam
 
 ### Quick Recipes
 
-Default view:
+Open the terminal UI:
 
 ```bash
 go run ./cmd/ascicam
+```
+
+Force the terminal UI explicitly:
+
+```bash
+go run ./cmd/ascicam --tui
+```
+
+Direct preview with flags:
+
+```bash
+go run ./cmd/ascicam --mode grayscale --width 100
 ```
 
 Sharper grayscale:
@@ -113,9 +130,22 @@ Inverted palette:
 go run ./cmd/ascicam --invert
 ```
 
+Save an ASCII photo:
+
+```bash
+go run ./cmd/ascicam --photo frame.txt
+```
+
+Record an animated GIF:
+
+```bash
+go run ./cmd/ascicam --record session.gif
+```
+
 ## ⚙️ Flags
 
 ```text
+--tui          open the terminal UI
 --device       camera device index
 --width        output width in characters, 0 = auto-fit
 --fps          maximum refresh rate
@@ -128,6 +158,9 @@ go run ./cmd/ascicam --invert
 --edge-high    upper Canny threshold for edge mode
 --invert       invert palette brightness mapping
 --status       show or hide the bottom status line
+--photo        save the first rendered frame to a .txt file and exit
+--record       record an animated .gif session up to 5 seconds
+--capture-fullscreen save photo and gif captures padded to full terminal size
 ```
 
 ## ⌨️ Runtime Controls
@@ -145,18 +178,26 @@ While the app is running:
 - Character cells are taller than they are wide, so the renderer compensates for aspect ratio.
 - `edges` mode uses Canny edge detection and works best when you want bold outlines instead of smooth shading.
 - `--status=false` gives a cleaner fullscreen terminal look.
+- `--photo` writes plain text only.
+- `--record` writes an animated GIF only and stops automatically after 5 seconds.
+- `--capture-fullscreen=true` is the default, so saved captures fill the current terminal canvas.
+- Saved captures are written into `captures/` with a timestamp prefix in the filename.
+- After saving a photo or GIF, the app shows a confirmation with the saved path.
+- Running without flags opens the pane-based terminal UI.
 
 ## 📦 Project Layout
 
 ```text
 ascicam/
 ├── cmd/ascicam/main.go
+├── internal/app/
 ├── internal/ascii/renderer.go
 ├── internal/ascii/renderer_test.go
 ├── go.mod
 └── README.md
 ```
 
-- `cmd/ascicam/main.go`: CLI flags, webcam loop, image processing, terminal setup.
+- `cmd/ascicam/main.go`: thin entry point.
+- `internal/app/`: application layer for config, Bubble Tea TUI, terminal session, frame pipeline, and recording.
 - `internal/ascii/renderer.go`: ASCII mapping, resizing, and masked rendering.
 - `internal/ascii/renderer_test.go`: renderer behavior tests.
